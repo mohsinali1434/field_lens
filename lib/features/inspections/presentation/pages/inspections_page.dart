@@ -100,10 +100,10 @@ class InspectionsPage extends StatelessWidget {
                   },
                   itemBuilder: (BuildContext context, int index) {
                     if (index == 0) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                      return const Padding(
+                        padding: EdgeInsets.only(bottom: AppSpacing.sm),
                         child: AnimatedFadeSlide(
-                          child: const AppPageHeader(
+                          child: AppPageHeader(
                             title: 'Inspections',
                             subtitle: 'Manage your field inspections',
                             compact: true,

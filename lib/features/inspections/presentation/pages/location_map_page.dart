@@ -40,7 +40,7 @@ class _LocationMapPageState extends State<LocationMapPage> {
     );
     if (!mounted) return;
 
-    result.fold(
+    await result.fold(
       onSuccess: (inspection) async {
         LatLng? position;
         if (inspection.latitude != null && inspection.longitude != null) {

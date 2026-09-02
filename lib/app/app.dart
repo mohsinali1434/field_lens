@@ -31,6 +31,9 @@ class FieldLensApp extends StatelessWidget {
                 if (child == null) {
                   return const SizedBox.shrink();
                 }
+                // Temporary bridge while go_router/flutter_bloc migrate to
+                // package:material_ui.
+                // ignore: deprecated_member_use
                 return MaterialUiCompatibilityBridge(child: child);
               },
               routerConfig: AppRouter.router,

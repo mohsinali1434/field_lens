@@ -210,7 +210,7 @@ class _ObservationFormPageState extends State<ObservationFormPage> {
           _LabeledField(
             label: 'Category',
             child: DropdownButtonFormField<ObservationCategory>(
-              value: _category,
+              initialValue: _category,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
               ),
@@ -235,7 +235,7 @@ class _ObservationFormPageState extends State<ObservationFormPage> {
           _LabeledField(
             label: 'Severity',
             child: DropdownButtonFormField<ObservationSeverity>(
-              value: _severity,
+              initialValue: _severity,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
               ),
@@ -260,7 +260,7 @@ class _ObservationFormPageState extends State<ObservationFormPage> {
           _LabeledField(
             label: 'Status',
             child: DropdownButtonFormField<ObservationStatus>(
-              value: _status,
+              initialValue: _status,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
               ),

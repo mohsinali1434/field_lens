@@ -1,4 +1,3 @@
-import 'package:field_lens/core/errors/failures.dart';
 import 'package:field_lens/core/utils/result.dart';
 import 'package:field_lens/features/dashboard/domain/models/dashboard_overview.dart';
 import 'package:field_lens/features/inspections/domain/entities/inspection_entity.dart';

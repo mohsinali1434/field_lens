@@ -1,4 +1,3 @@
-import 'package:field_lens/core/errors/failures.dart';
 import 'package:field_lens/core/services/location_service.dart';
 import 'package:field_lens/core/services/media_storage_service.dart';
 import 'package:field_lens/core/utils/result.dart';

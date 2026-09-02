@@ -7,10 +7,13 @@ analyzer:
     strict-raw-types: true
   errors:
     invalid_annotation_target: ignore
+    # Named DI constructor params intentionally map to private fields.
+    prefer_initializing_formals: ignore
   exclude:
     - build/**
     - android/**
     - ios/**
+    - tool/**
 
 linter:
   rules:

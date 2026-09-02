@@ -129,7 +129,7 @@ void main() {
         ),
       );
       await repository.saveTemplateItem(
-        ChecklistTemplateItemEntity(
+        const ChecklistTemplateItemEntity(
           id: 'item-1',
           templateId: 'tpl-1',
           title: 'Fire extinguisher',

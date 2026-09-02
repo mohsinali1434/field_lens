@@ -10,7 +10,7 @@ class LocationService {
     if (status.isGranted) {
       return const Success<bool>(true);
     }
-    return Error<bool>(
+    return const Error<bool>(
       PermissionFailure(message: 'Location permission denied'),
     );
   }

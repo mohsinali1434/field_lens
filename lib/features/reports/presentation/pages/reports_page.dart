@@ -59,7 +59,7 @@ class _ReportsPageState extends State<ReportsPage> {
     final inspectionsResult = await sl<InspectionRepository>().getInspections();
     if (!mounted) return;
 
-    inspectionsResult.fold(
+    await inspectionsResult.fold(
       onSuccess: (List<InspectionEntity> inspections) async {
         final items = <_ReportListItem>[];
         for (final inspection in inspections) {
@@ -188,10 +188,10 @@ class _ReportsPageState extends State<ReportsPage> {
         },
         itemBuilder: (BuildContext context, int index) {
           if (index == 0) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+            return const Padding(
+              padding: EdgeInsets.only(bottom: AppSpacing.sm),
               child: AnimatedFadeSlide(
-                child: const AppPageHeader(
+                child: AppPageHeader(
                   title: 'Reports',
                   subtitle: 'Generate and preview PDF reports',
                   compact: true,

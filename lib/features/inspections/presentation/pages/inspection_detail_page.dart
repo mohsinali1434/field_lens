@@ -190,7 +190,7 @@ class _InspectionDetailView extends StatelessWidget {
               ),
               body: switch (state) {
                 InspectionDetailInitial() || InspectionDetailLoading() =>
-                  LoadingView(message: 'Loading inspection...'),
+                  const LoadingView(message: 'Loading inspection...'),
                 InspectionDetailFailure(:final message) => ErrorView(
                   message: message,
                   onRetry: () => context.read<InspectionDetailBloc>().add(
@@ -857,7 +857,7 @@ class _ChecklistTabState extends State<_ChecklistTab> {
     );
     if (!mounted) return;
 
-    result.fold(
+    await result.fold(
       onSuccess: (int count) async {
         await _recordTimeline(
           'Checklist applied',
@@ -917,7 +917,7 @@ class _ChecklistTabState extends State<_ChecklistTab> {
     titleController.dispose();
     if (!mounted) return;
 
-    result.fold(
+    await result.fold(
       onSuccess: (ChecklistResultEntity item) async {
         await _recordTimeline(
           'Checklist item added',

@@ -59,7 +59,7 @@ class MediaStorageService {
   }) async {
     try {
       final bytes = await File(sourcePath).readAsBytes();
-      return saveBytes(bytes: bytes, extension: extension);
+      return await saveBytes(bytes: bytes, extension: extension);
     } on Object catch (error) {
       return Error<String>(
         StorageFailure(message: 'Failed to copy file: $error'),

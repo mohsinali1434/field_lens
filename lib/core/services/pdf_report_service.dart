@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:field_lens/core/errors/failures.dart';
 import 'package:field_lens/core/utils/result.dart';
 import 'package:field_lens/features/checklists/domain/entities/checklist_entities.dart';
-import 'package:field_lens/features/inspections/domain/entities/inspection_entity.dart';
 import 'package:field_lens/features/inspections/domain/repositories/inspection_repository.dart';
 import 'package:field_lens/features/observations/domain/entities/observation_entity.dart';
 import 'package:field_lens/features/observations/domain/repositories/observation_repository.dart';
@@ -11,10 +10,6 @@ import 'package:field_lens/features/reports/domain/entities/report_entity.dart';
 import 'package:field_lens/features/reports/domain/entities/report_status.dart';
 import 'package:field_lens/features/reports/domain/repositories/report_repository.dart';
 import 'package:field_lens/features/checklists/domain/repositories/checklist_repository.dart';
-import 'package:field_lens/features/media/domain/entities/media_entity.dart';
-import 'package:field_lens/features/media/domain/repositories/media_repository.dart';
-import 'package:field_lens/features/inspections/domain/entities/timeline_event_entity.dart';
-import 'package:field_lens/features/inspections/domain/repositories/timeline_repository.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
@@ -72,7 +67,7 @@ class PdfReportService {
           pageFormat: PdfPageFormat.a4,
           build: (pw.Context context) => <pw.Widget>[
             pw.Header(level: 0, child: pw.Text('FIELDLENS')),
-            pw.Text('INSPECTION REPORT', style: pw.TextStyle(fontSize: 18)),
+            pw.Text('INSPECTION REPORT', style: const pw.TextStyle(fontSize: 18)),
             pw.SizedBox(height: 12),
             pw.Text('Inspection: ${inspection.title}'),
             pw.Text('Client: ${inspection.clientName}'),
@@ -98,7 +93,7 @@ class PdfReportService {
                 children: <pw.Widget>[
                   pw.Text(
                     obs.title,
-                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                    style: const pw.TextStyle(fontWeight: pw.FontWeight.bold),
                   ),
                   pw.Text(
                     'Severity: ${obs.severity.value.toUpperCase()} | '

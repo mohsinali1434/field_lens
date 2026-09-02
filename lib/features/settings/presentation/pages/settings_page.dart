@@ -29,7 +29,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final export = await sl<BackupService>().exportBackup();
     if (!mounted) return;
 
-    export.fold(
+    await export.fold(
       onSuccess: (path) async {
         final share = await sl<BackupService>().shareBackup(path);
         if (!mounted) return;
@@ -57,8 +57,8 @@ class _SettingsPageState extends State<SettingsPage> {
     return ListView(
         padding: const EdgeInsets.only(bottom: AppSpacing.xl),
         children: <Widget>[
-          AnimatedFadeSlide(
-            child: const AppPageHeader(
+          const AnimatedFadeSlide(
+            child: AppPageHeader(
               title: 'Settings',
               subtitle: 'Customize appearance and manage your data',
               compact: true,
@@ -69,9 +69,9 @@ class _SettingsPageState extends State<SettingsPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                AnimatedFadeSlide(
+                const AnimatedFadeSlide(
                   index: 1,
-                  child: const AppSectionHeader(title: 'Appearance'),
+                  child: AppSectionHeader(title: 'Appearance'),
                 ),
                 AnimatedFadeSlide(
                   index: 2,
@@ -108,9 +108,9 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
                 ),
                 const SizedBox(height: AppSpacing.lg),
-                AnimatedFadeSlide(
+                const AnimatedFadeSlide(
                   index: 3,
-                  child: const AppSectionHeader(title: 'Data'),
+                  child: AppSectionHeader(title: 'Data'),
                 ),
                 AnimatedFadeSlide(
                   index: 4,
@@ -137,9 +137,9 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
                 ),
                 const SizedBox(height: AppSpacing.lg),
-                AnimatedFadeSlide(
+                const AnimatedFadeSlide(
                   index: 5,
-                  child: const AppSectionHeader(title: 'Privacy'),
+                  child: AppSectionHeader(title: 'Privacy'),
                 ),
                 AnimatedFadeSlide(
                   index: 6,
@@ -167,9 +167,9 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
                 ),
                 const SizedBox(height: AppSpacing.lg),
-                AnimatedFadeSlide(
+                const AnimatedFadeSlide(
                   index: 7,
-                  child: const AppSectionHeader(title: 'About'),
+                  child: AppSectionHeader(title: 'About'),
                 ),
                 AnimatedFadeSlide(
                   index: 8,

@@ -136,24 +136,24 @@ class _DashboardContent extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                AnimatedFadeSlide(
+                const AnimatedFadeSlide(
                   index: 1,
-                  child: const AppSectionHeader(title: "Today's overview"),
+                  child: AppSectionHeader(title: "Today's overview"),
                 ),
                 _StatGrid(overview: overview),
                 const SizedBox(height: AppSpacing.lg),
-                AnimatedFadeSlide(
+                const AnimatedFadeSlide(
                   index: 2,
-                  child: const AppSectionHeader(title: 'Quick actions'),
+                  child: AppSectionHeader(title: 'Quick actions'),
                 ),
                 _QuickActions(
                   overview: overview,
                   onNewInspection: onNewInspection,
                 ),
                 const SizedBox(height: AppSpacing.lg),
-                AnimatedFadeSlide(
+                const AnimatedFadeSlide(
                   index: 3,
-                  child: const AppSectionHeader(title: 'Recent inspections'),
+                  child: AppSectionHeader(title: 'Recent inspections'),
                 ),
               ],
             ),

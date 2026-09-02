@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:drift/native.dart';
 import 'package:field_lens/core/database/app_database.dart';
-import 'package:field_lens/core/services/backup_service.dart';
 import 'package:field_lens/core/services/location_service.dart';
 import 'package:field_lens/core/services/media_storage_service.dart';
 import 'package:field_lens/core/utils/result.dart';
@@ -10,13 +9,9 @@ import 'package:field_lens/features/inspections/data/repositories/inspection_rep
 import 'package:field_lens/features/inspections/data/repositories/timeline_repository_impl.dart';
 import 'package:field_lens/features/inspections/domain/entities/inspection_entity.dart';
 import 'package:field_lens/features/inspections/domain/entities/inspection_status.dart';
-import 'package:field_lens/features/inspections/domain/entities/timeline_event_entity.dart';
 import 'package:field_lens/features/inspections/domain/entities/timeline_event_type.dart';
 import 'package:field_lens/features/inspections/domain/repositories/timeline_repository.dart';
 import 'package:field_lens/features/media/data/repositories/media_repository_impl.dart';
-import 'package:field_lens/features/observations/data/repositories/observation_repository_impl.dart';
-import 'package:field_lens/features/settings/data/repositories/settings_repository_impl.dart';
-import 'package:field_lens/features/settings/domain/entities/setting_entity.dart';
 import 'package:field_lens/core/services/inspection_activity_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';

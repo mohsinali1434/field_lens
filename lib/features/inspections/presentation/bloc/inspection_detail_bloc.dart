@@ -3,7 +3,6 @@ import 'package:field_lens/features/checklists/domain/repositories/checklist_rep
 import 'package:field_lens/features/inspections/domain/entities/inspection_status.dart';
 import 'package:field_lens/features/inspections/domain/entities/timeline_event_entity.dart';
 import 'package:field_lens/features/inspections/domain/entities/timeline_event_type.dart';
-import 'package:field_lens/features/inspections/domain/entities/timeline_event_entity.dart';
 import 'package:field_lens/features/inspections/domain/models/inspection_workspace.dart';
 import 'package:field_lens/features/inspections/domain/repositories/inspection_repository.dart';
 import 'package:field_lens/features/inspections/domain/repositories/timeline_repository.dart';

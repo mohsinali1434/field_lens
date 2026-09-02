@@ -73,7 +73,7 @@ class BackupService {
         ArchiveFile('metadata.json', jsonBytes.length, jsonBytes),
       );
 
-      final zipBytes = ZipEncoder().encode(archive)!;
+      final zipBytes = ZipEncoder().encode(archive);
 
       final docs = await getApplicationDocumentsDirectory();
       final exportDir = Directory(p.join(docs.path, 'exports'));
@@ -93,9 +93,12 @@ class BackupService {
 
   Future<Result<void>> shareBackup(String filePath) async {
     try {
-      await Share.shareXFiles(<XFile>[
-        XFile(filePath),
-      ], text: 'FieldLens backup');
+      await SharePlus.instance.share(
+        ShareParams(
+          files: <XFile>[XFile(filePath)],
+          text: 'FieldLens backup',
+        ),
+      );
       return const Success<void>(null);
     } on Object catch (error) {
       return Error<void>(StorageFailure(message: 'Share failed: $error'));
