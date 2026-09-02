@@ -1,0 +1,45 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "field_lens",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "cwd": "${workspaceFolder}",
+      "preLaunchTask": "flutter: test all"
+    },
+    {
+      "name": "field_lens (profile mode)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "cwd": "${workspaceFolder}",
+      "flutterMode": "profile",
+      "preLaunchTask": "flutter: test all"
+    },
+    {
+      "name": "field_lens (release mode)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "cwd": "${workspaceFolder}",
+      "flutterMode": "release",
+      "preLaunchTask": "flutter: test all"
+    },
+    {
+      "name": "field_lens (tests only)",
+      "request": "launch",
+      "type": "dart",
+      "program": "test/",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "field_lens (app only, skip tests)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}
