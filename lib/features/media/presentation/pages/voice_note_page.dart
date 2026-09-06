@@ -20,41 +20,71 @@ class VoiceNotePage extends StatefulWidget {
   State<VoiceNotePage> createState() => _VoiceNotePageState();
 }
 
+class _VoiceNoteUiState {
+  const _VoiceNoteUiState({
+    this.isRecording = false,
+    this.isBusy = false,
+    this.recordingPath,
+    this.elapsed = Duration.zero,
+  });
+
+  final bool isRecording;
+  final bool isBusy;
+  final String? recordingPath;
+  final Duration elapsed;
+
+  _VoiceNoteUiState copyWith({
+    bool? isRecording,
+    bool? isBusy,
+    String? recordingPath,
+    Duration? elapsed,
+    bool clearPath = false,
+  }) {
+    return _VoiceNoteUiState(
+      isRecording: isRecording ?? this.isRecording,
+      isBusy: isBusy ?? this.isBusy,
+      recordingPath: clearPath ? null : (recordingPath ?? this.recordingPath),
+      elapsed: elapsed ?? this.elapsed,
+    );
+  }
+}
+
 class _VoiceNotePageState extends State<VoiceNotePage> {
-  bool _isRecording = false;
-  bool _isBusy = false;
-  String? _recordingPath;
-  Duration _elapsed = Duration.zero;
+  final ValueNotifier<_VoiceNoteUiState> _state =
+      ValueNotifier<_VoiceNoteUiState>(const _VoiceNoteUiState());
   Timer? _timer;
 
   @override
   void dispose() {
     _timer?.cancel();
+    _state.dispose();
     super.dispose();
   }
 
   Future<void> _startRecording() async {
-    setState(() => _isBusy = true);
+    _state.value = _state.value.copyWith(isBusy: true);
     final result = await sl<AudioRecorderService>().start();
     if (!mounted) return;
 
     result.fold(
       onSuccess: (_) {
-        setState(() {
-          _isRecording = true;
-          _isBusy = false;
-          _elapsed = Duration.zero;
-          _recordingPath = null;
-        });
+        _state.value = _state.value.copyWith(
+          isRecording: true,
+          isBusy: false,
+          elapsed: Duration.zero,
+          clearPath: true,
+        );
         _timer?.cancel();
         _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-          if (mounted) {
-            setState(() => _elapsed += const Duration(seconds: 1));
-          }
+          if (!mounted) return;
+          final current = _state.value;
+          _state.value = current.copyWith(
+            elapsed: current.elapsed + const Duration(seconds: 1),
+          );
         });
       },
       onFailure: (failure) {
-        setState(() => _isBusy = false);
+        _state.value = _state.value.copyWith(isBusy: false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(failure.message)),
         );
@@ -64,23 +94,23 @@ class _VoiceNotePageState extends State<VoiceNotePage> {
 
   Future<void> _stopRecording() async {
     _timer?.cancel();
-    setState(() => _isBusy = true);
+    _state.value = _state.value.copyWith(isBusy: true);
     final result = await sl<AudioRecorderService>().stop();
     if (!mounted) return;
 
     result.fold(
       onSuccess: (path) {
-        setState(() {
-          _isRecording = false;
-          _isBusy = false;
-          _recordingPath = path;
-        });
+        _state.value = _state.value.copyWith(
+          isRecording: false,
+          isBusy: false,
+          recordingPath: path,
+        );
       },
       onFailure: (failure) {
-        setState(() {
-          _isRecording = false;
-          _isBusy = false;
-        });
+        _state.value = _state.value.copyWith(
+          isRecording: false,
+          isBusy: false,
+        );
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(failure.message)),
         );
@@ -89,24 +119,26 @@ class _VoiceNotePageState extends State<VoiceNotePage> {
   }
 
   Future<void> _playPreview() async {
-    if (_recordingPath == null) return;
-    await sl<AudioPlayerService>().play(_recordingPath!);
+    final path = _state.value.recordingPath;
+    if (path == null) return;
+    await sl<AudioPlayerService>().play(path);
   }
 
   Future<void> _save() async {
-    if (_recordingPath == null) return;
-    setState(() => _isBusy = true);
+    final path = _state.value.recordingPath;
+    if (path == null) return;
+    _state.value = _state.value.copyWith(isBusy: true);
 
     final result = await sl<InspectionActivityService>().saveAudio(
       inspectionId: widget.inspectionId,
-      sourcePath: _recordingPath!,
+      sourcePath: path,
     );
     if (!mounted) return;
 
     result.fold(
       onSuccess: (_) => Navigator.of(context).pop(true),
       onFailure: (failure) {
-        setState(() => _isBusy = false);
+        _state.value = _state.value.copyWith(isBusy: false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(failure.message)),
         );
@@ -125,58 +157,65 @@ class _VoiceNotePageState extends State<VoiceNotePage> {
     return AppScaffold(
       title: 'Voice Note',
       showBackButton: true,
-      body: Column(
-        children: <Widget>[
-          const Spacer(),
-          Icon(
-            _isRecording ? Icons.mic_rounded : Icons.mic_none_rounded,
-            size: 96,
-            color: _isRecording
-                ? context.colors.error
-                : context.colors.onSurfaceVariant,
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Text(
-            _isRecording ? 'Recording…' : 'Tap record to start',
-            style: context.textTheme.titleMedium,
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            _formatDuration(_elapsed),
-            style: context.textTheme.headlineSmall,
-          ),
-          const Spacer(),
-          if (_recordingPath != null)
-            AppButton(
-              label: 'Preview',
-              icon: Icons.play_arrow_rounded,
-              variant: AppButtonVariant.secondary,
-              expand: true,
-              onPressed: _isBusy ? null : _playPreview,
-            ),
-          const SizedBox(height: AppSpacing.sm),
-          AppButton(
-            label: _isRecording ? 'Stop' : 'Record',
-            icon: _isRecording ? Icons.stop_rounded : Icons.fiber_manual_record,
-            expand: true,
-            isLoading: _isBusy,
-            onPressed: _isBusy
-                ? null
-                : _isRecording
-                ? _stopRecording
-                : _startRecording,
-          ),
-          if (_recordingPath != null) ...<Widget>[
-            const SizedBox(height: AppSpacing.sm),
-            AppButton(
-              label: 'Save Voice Note',
-              expand: true,
-              isLoading: _isBusy,
-              onPressed: _isBusy ? null : _save,
-            ),
-          ],
-          const SizedBox(height: AppSpacing.lg),
-        ],
+      body: ValueListenableBuilder<_VoiceNoteUiState>(
+        valueListenable: _state,
+        builder: (BuildContext context, _VoiceNoteUiState state, _) {
+          return Column(
+            children: <Widget>[
+              const Spacer(),
+              Icon(
+                state.isRecording ? Icons.mic_rounded : Icons.mic_none_rounded,
+                size: 96,
+                color: state.isRecording
+                    ? context.colors.error
+                    : context.colors.onSurfaceVariant,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                state.isRecording ? 'Recording…' : 'Tap record to start',
+                style: context.textTheme.titleMedium,
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                _formatDuration(state.elapsed),
+                style: context.textTheme.headlineSmall,
+              ),
+              const Spacer(),
+              if (state.recordingPath != null)
+                AppButton(
+                  label: 'Preview',
+                  icon: Icons.play_arrow_rounded,
+                  variant: AppButtonVariant.secondary,
+                  expand: true,
+                  onPressed: state.isBusy ? null : _playPreview,
+                ),
+              const SizedBox(height: AppSpacing.sm),
+              AppButton(
+                label: state.isRecording ? 'Stop' : 'Record',
+                icon: state.isRecording
+                    ? Icons.stop_rounded
+                    : Icons.fiber_manual_record,
+                expand: true,
+                isLoading: state.isBusy,
+                onPressed: state.isBusy
+                    ? null
+                    : state.isRecording
+                        ? _stopRecording
+                        : _startRecording,
+              ),
+              if (state.recordingPath != null) ...<Widget>[
+                const SizedBox(height: AppSpacing.sm),
+                AppButton(
+                  label: 'Save Voice Note',
+                  expand: true,
+                  isLoading: state.isBusy,
+                  onPressed: state.isBusy ? null : _save,
+                ),
+              ],
+              const SizedBox(height: AppSpacing.lg),
+            ],
+          );
+        },
       ),
     );
   }

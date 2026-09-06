@@ -23,15 +23,23 @@ class LocationMapPage extends StatefulWidget {
 
 class _LocationMapPageState extends State<LocationMapPage> {
   final _mapController = MapController();
-  bool _isLoading = true;
-  bool _isSaving = false;
+  final ValueNotifier<bool> _isLoading = ValueNotifier<bool>(true);
+  final ValueNotifier<bool> _isSaving = ValueNotifier<bool>(false);
+  final ValueNotifier<LatLng?> _position = ValueNotifier<LatLng?>(null);
   InspectionEntity? _inspection;
-  LatLng? _position;
 
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _isLoading.dispose();
+    _isSaving.dispose();
+    _position.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -55,49 +63,44 @@ class _LocationMapPageState extends State<LocationMapPage> {
           }
         }
 
-        setState(() {
-          _inspection = inspection;
-          _position = position;
-          _isLoading = false;
-        });
+        _inspection = inspection;
+        _position.value = position;
+        _isLoading.value = false;
       },
       onFailure: (failure) {
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(failure.message)),
-        );
+        _isLoading.value = false;
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(failure.message)));
       },
     );
   }
 
   Future<void> _useCurrentLocation() async {
-    setState(() => _isSaving = true);
+    _isSaving.value = true;
     final location = await sl<LocationService>().getCurrentLocation();
     if (!mounted) return;
 
     location.fold(
       onSuccess: (coords) {
-        setState(() {
-          _position = LatLng(coords.latitude, coords.longitude);
-          _isSaving = false;
-        });
-        _mapController.move(_position!, 15);
+        final point = LatLng(coords.latitude, coords.longitude);
+        _position.value = point;
+        _isSaving.value = false;
+        _mapController.move(point, 15);
       },
       onFailure: (failure) {
-        setState(() => _isSaving = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(failure.message)),
-        );
+        _isSaving.value = false;
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(failure.message)));
       },
     );
   }
 
   Future<void> _save() async {
     final inspection = _inspection;
-    final position = _position;
+    final position = _position.value;
     if (inspection == null || position == null) return;
 
-    setState(() => _isSaving = true);
+    _isSaving.value = true;
     final result = await sl<InspectionActivityService>().updateLocation(
       inspection: inspection,
       latitude: position.latitude,
@@ -108,10 +111,9 @@ class _LocationMapPageState extends State<LocationMapPage> {
     result.fold(
       onSuccess: (_) => Navigator.of(context).pop(true),
       onFailure: (failure) {
-        setState(() => _isSaving = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(failure.message)),
-        );
+        _isSaving.value = false;
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(failure.message)));
       },
     );
   }
@@ -121,75 +123,91 @@ class _LocationMapPageState extends State<LocationMapPage> {
     return AppScaffold(
       title: 'Location',
       showBackButton: true,
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: <Widget>[
-                Expanded(
-                  child: _position == null
-                      ? Center(
-                          child: Text(
-                            'Location unavailable',
-                            style: context.textTheme.bodyLarge,
-                          ),
-                        )
-                      : FlutterMap(
-                          mapController: _mapController,
-                          options: MapOptions(
-                            initialCenter: _position!,
-                            initialZoom: 15,
-                            onTap: (_, LatLng point) {
-                              setState(() => _position = point);
-                            },
-                          ),
-                          children: <Widget>[
-                            TileLayer(
-                              urlTemplate:
-                                  'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                              userAgentPackageName: 'com.fieldlens.app',
-                            ),
-                            MarkerLayer(
-                              markers: <Marker>[
-                                Marker(
-                                  point: _position!,
-                                  width: 40,
-                                  height: 40,
-                                  child: const Icon(
-                                    Icons.location_pin,
-                                    color: Colors.red,
-                                    size: 40,
-                                  ),
+      body: ValueListenableBuilder<bool>(
+        valueListenable: _isLoading,
+        builder: (BuildContext context, bool isLoading, _) {
+          if (isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          return ValueListenableBuilder<LatLng?>(
+            valueListenable: _position,
+            builder: (BuildContext context, LatLng? position, _) {
+              return ValueListenableBuilder<bool>(
+                valueListenable: _isSaving,
+                builder: (BuildContext context, bool isSaving, _) {
+                  return Column(
+                    children: <Widget>[
+                      Expanded(
+                        child: position == null
+                            ? Center(
+                                child: Text(
+                                  'Location unavailable',
+                                  style: context.textTheme.bodyLarge,
                                 ),
-                              ],
+                              )
+                            : FlutterMap(
+                                mapController: _mapController,
+                                options: MapOptions(
+                                  initialCenter: position,
+                                  initialZoom: 15,
+                                  onTap: (_, LatLng point) {
+                                    _position.value = point;
+                                  },
+                                ),
+                                children: <Widget>[
+                                  TileLayer(
+                                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                    userAgentPackageName: 'com.fieldlens.app',
+                                  ),
+                                  MarkerLayer(
+                                    markers: <Marker>[
+                                      Marker(
+                                        point: position,
+                                        width: 40,
+                                        height: 40,
+                                        child: const Icon(
+                                          Icons.location_pin,
+                                          color: Colors.red,
+                                          size: 40,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(AppSpacing.md),
+                        child: Column(
+                          children: <Widget>[
+                            AppButton(
+                              label: 'Use Current Location',
+                              icon: Icons.my_location_rounded,
+                              variant: AppButtonVariant.secondary,
+                              expand: true,
+                              isLoading: isSaving,
+                              onPressed: isSaving ? null : _useCurrentLocation,
+                            ),
+                            const SizedBox(height: AppSpacing.sm),
+                            AppButton(
+                              label: 'Save Location',
+                              expand: true,
+                              isLoading: isSaving,
+                              onPressed: isSaving || position == null
+                                  ? null
+                                  : _save,
                             ),
                           ],
                         ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  child: Column(
-                    children: <Widget>[
-                      AppButton(
-                        label: 'Use Current Location',
-                        icon: Icons.my_location_rounded,
-                        variant: AppButtonVariant.secondary,
-                        expand: true,
-                        isLoading: _isSaving,
-                        onPressed: _isSaving ? null : _useCurrentLocation,
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-                      AppButton(
-                        label: 'Save Location',
-                        expand: true,
-                        isLoading: _isSaving,
-                        onPressed:
-                            _isSaving || _position == null ? null : _save,
                       ),
                     ],
-                  ),
-                ),
-              ],
-            ),
+                  );
+                },
+              );
+            },
+          );
+        },
+      ),
     );
   }
 }

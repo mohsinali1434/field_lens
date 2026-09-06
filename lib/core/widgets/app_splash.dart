@@ -83,7 +83,6 @@ class _AppSplashHandoffState extends State<AppSplashHandoff> {
       if (!mounted || _nativeRemoved) return;
       FlutterNativeSplash.remove();
       _nativeRemoved = true;
-      setState(() {});
     });
   }
 

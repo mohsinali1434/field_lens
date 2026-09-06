@@ -835,7 +835,13 @@ class _ChecklistTab extends StatefulWidget {
 }
 
 class _ChecklistTabState extends State<_ChecklistTab> {
-  bool _isBusy = false;
+  final ValueNotifier<bool> _isBusy = ValueNotifier<bool>(false);
+
+  @override
+  void dispose() {
+    _isBusy.dispose();
+    super.dispose();
+  }
 
   Future<void> _recordTimeline(String title, String description) async {
     await sl<TimelineRepository>().add(
@@ -851,7 +857,7 @@ class _ChecklistTabState extends State<_ChecklistTab> {
   }
 
   Future<void> _applyStandardChecklist() async {
-    setState(() => _isBusy = true);
+    _isBusy.value = true;
     final result = await sl<ChecklistSetupService>().attachDefaultChecklist(
       widget.workspace.inspection.id,
     );
@@ -863,11 +869,11 @@ class _ChecklistTabState extends State<_ChecklistTab> {
           'Checklist applied',
           '$count checklist items were added.',
         );
-        setState(() => _isBusy = false);
+        _isBusy.value = false;
         widget.onUpdated();
       },
       onFailure: (failure) {
-        setState(() => _isBusy = false);
+        _isBusy.value = false;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(failure.message)),
         );
@@ -909,7 +915,7 @@ class _ChecklistTabState extends State<_ChecklistTab> {
       return;
     }
 
-    setState(() => _isBusy = true);
+    _isBusy.value = true;
     final result = await sl<ChecklistSetupService>().addCustomItem(
       inspectionId: widget.workspace.inspection.id,
       title: titleController.text,
@@ -923,11 +929,11 @@ class _ChecklistTabState extends State<_ChecklistTab> {
           'Checklist item added',
           'Added "${item.title}" to the checklist.',
         );
-        setState(() => _isBusy = false);
+        _isBusy.value = false;
         widget.onUpdated();
       },
       onFailure: (failure) {
-        setState(() => _isBusy = false);
+        _isBusy.value = false;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(failure.message)),
         );
@@ -937,64 +943,70 @@ class _ChecklistTabState extends State<_ChecklistTab> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isBusy) {
-      return const LoadingView(message: 'Updating checklist...');
-    }
+    return ValueListenableBuilder<bool>(
+      valueListenable: _isBusy,
+      builder: (BuildContext context, bool isBusy, _) {
+        if (isBusy) {
+          return const LoadingView(message: 'Updating checklist...');
+        }
 
-    if (widget.workspace.checklistResults.isEmpty) {
-      return Column(
-        children: <Widget>[
-          Expanded(
-            child: EmptyState(
-              title: 'No checklist yet',
-              message:
-                  'Apply the standard inspection checklist or add your own items.',
-              icon: AppIcons.checklist,
-              actionLabel: 'Apply Standard Checklist',
-              onAction: _applyStandardChecklist,
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            child: AppButton(
-              label: 'Add Custom Item',
-              variant: AppButtonVariant.outlined,
-              expand: true,
-              onPressed: _addCustomItem,
-            ),
-          ),
-        ],
-      );
-    }
+        if (widget.workspace.checklistResults.isEmpty) {
+          return Column(
+            children: <Widget>[
+              Expanded(
+                child: EmptyState(
+                  title: 'No checklist yet',
+                  message:
+                      'Apply the standard inspection checklist or add your own items.',
+                  icon: AppIcons.checklist,
+                  actionLabel: 'Apply Standard Checklist',
+                  onAction: _applyStandardChecklist,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                child: AppButton(
+                  label: 'Add Custom Item',
+                  variant: AppButtonVariant.outlined,
+                  expand: true,
+                  onPressed: _addCustomItem,
+                ),
+              ),
+            ],
+          );
+        }
 
-    return Stack(
-      children: <Widget>[
-        ListView.separated(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.md,
-            AppSpacing.md,
-            AppSpacing.md,
-            AppSpacing.xxl,
-          ),
-          itemCount: widget.workspace.checklistResults.length,
-          separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
-          itemBuilder: (BuildContext context, int index) {
-            return _ChecklistCard(
-              result: widget.workspace.checklistResults[index],
-              onUpdated: widget.onUpdated,
-            );
-          },
-        ),
-        Positioned(
-          right: AppSpacing.md,
-          bottom: AppSpacing.md,
-          child: FloatingActionButton.extended(
-            onPressed: _addCustomItem,
-            icon: const Icon(Icons.add_rounded),
-            label: const Text('Add Item'),
-          ),
-        ),
-      ],
+        return Stack(
+          children: <Widget>[
+            ListView.separated(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.md,
+                AppSpacing.md,
+                AppSpacing.xxl,
+              ),
+              itemCount: widget.workspace.checklistResults.length,
+              separatorBuilder: (_, _) =>
+                  const SizedBox(height: AppSpacing.sm),
+              itemBuilder: (BuildContext context, int index) {
+                return _ChecklistCard(
+                  result: widget.workspace.checklistResults[index],
+                  onUpdated: widget.onUpdated,
+                );
+              },
+            ),
+            Positioned(
+              right: AppSpacing.md,
+              bottom: AppSpacing.md,
+              child: FloatingActionButton.extended(
+                onPressed: _addCustomItem,
+                icon: const Icon(Icons.add_rounded),
+                label: const Text('Add Item'),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -1010,7 +1022,13 @@ class _ChecklistCard extends StatefulWidget {
 }
 
 class _ChecklistCardState extends State<_ChecklistCard> {
-  bool _isUpdating = false;
+  final ValueNotifier<bool> _isUpdating = ValueNotifier<bool>(false);
+
+  @override
+  void dispose() {
+    _isUpdating.dispose();
+    super.dispose();
+  }
 
   ChecklistItemStatus _nextStatus(ChecklistItemStatus current) {
     return switch (current) {
@@ -1022,7 +1040,7 @@ class _ChecklistCardState extends State<_ChecklistCard> {
   }
 
   Future<void> _toggleStatus() async {
-    setState(() => _isUpdating = true);
+    _isUpdating.value = true;
     final result = widget.result;
     final updated = ChecklistResultEntity(
       id: result.id,
@@ -1048,12 +1066,13 @@ class _ChecklistCardState extends State<_ChecklistCard> {
             ? TimelineEventType.checklistItemFailed
             : TimelineEventType.other,
         title: 'Checklist updated',
-        description: '${result.title} marked as ${_statusLabel(updated.status)}.',
+        description:
+            '${result.title} marked as ${_statusLabel(updated.status)}.',
         createdAt: DateTime.now().toUtc(),
       ),
     );
     if (!mounted) return;
-    setState(() => _isUpdating = false);
+    _isUpdating.value = false;
     widget.onUpdated();
   }
 
@@ -1070,40 +1089,48 @@ class _ChecklistCardState extends State<_ChecklistCard> {
   Widget build(BuildContext context) {
     final result = widget.result;
 
-    return AppCard(
-      elevated: true,
-      onTap: _isUpdating ? null : _toggleStatus,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
+    return ValueListenableBuilder<bool>(
+      valueListenable: _isUpdating,
+      builder: (BuildContext context, bool isUpdating, _) {
+        return AppCard(
+          elevated: true,
+          onTap: isUpdating ? null : _toggleStatus,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Expanded(
-                child: Text(result.title, style: context.textTheme.titleSmall),
+              Row(
+                children: <Widget>[
+                  Expanded(
+                    child: Text(
+                      result.title,
+                      style: context.textTheme.titleSmall,
+                    ),
+                  ),
+                  if (isUpdating)
+                    const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  else
+                    _ChecklistStatusBadge(status: result.status),
+                ],
               ),
-              if (_isUpdating)
-                const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              else
-                _ChecklistStatusBadge(status: result.status),
+              if (result.notes?.isNotEmpty == true) ...<Widget>[
+                const SizedBox(height: AppSpacing.xs),
+                Text(result.notes!, style: context.textTheme.bodyMedium),
+              ],
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                'Tap to update status',
+                style: context.textTheme.labelSmall?.copyWith(
+                  color: context.colors.onSurfaceVariant,
+                ),
+              ),
             ],
           ),
-          if (result.notes?.isNotEmpty == true) ...<Widget>[
-            const SizedBox(height: AppSpacing.xs),
-            Text(result.notes!, style: context.textTheme.bodyMedium),
-          ],
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            'Tap to update status',
-            style: context.textTheme.labelSmall?.copyWith(
-              color: context.colors.onSurfaceVariant,
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -1234,12 +1261,18 @@ class _ReportTab extends StatefulWidget {
 }
 
 class _ReportTabState extends State<_ReportTab> {
-  bool _isGenerating = false;
+  final ValueNotifier<bool> _isGenerating = ValueNotifier<bool>(false);
+
+  @override
+  void dispose() {
+    _isGenerating.dispose();
+    super.dispose();
+  }
 
   Future<void> _generateReport() async {
     final signaturePath = await context.push<String?>(AppRoutes.signature);
 
-    setState(() => _isGenerating = true);
+    _isGenerating.value = true;
 
     final workspace = widget.workspace;
     final summary = await sl<IntelligenceService>().summarizeInspection(
@@ -1247,7 +1280,10 @@ class _ReportTabState extends State<_ReportTab> {
           .map((ObservationEntity o) => o.title)
           .toList(),
       checklistNotes: workspace.checklistResults
-          .map((ChecklistResultEntity item) => '${item.title}: ${item.status.value}')
+          .map(
+            (ChecklistResultEntity item) =>
+                '${item.title}: ${item.status.value}',
+          )
           .toList(),
       notes: workspace.inspection.notes ?? '',
     );
@@ -1259,7 +1295,7 @@ class _ReportTabState extends State<_ReportTab> {
     );
     if (!mounted) return;
 
-    setState(() => _isGenerating = false);
+    _isGenerating.value = false;
     result.fold(
       onSuccess: (String path) {
         widget.onGenerated();
@@ -1293,12 +1329,17 @@ class _ReportTabState extends State<_ReportTab> {
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.md),
       children: <Widget>[
-        AppButton(
-          label: 'Generate PDF Report',
-          icon: AppIcons.reports,
-          expand: true,
-          isLoading: _isGenerating,
-          onPressed: _isGenerating ? null : _generateReport,
+        ValueListenableBuilder<bool>(
+          valueListenable: _isGenerating,
+          builder: (BuildContext context, bool isGenerating, _) {
+            return AppButton(
+              label: 'Generate PDF Report',
+              icon: AppIcons.reports,
+              expand: true,
+              isLoading: isGenerating,
+              onPressed: isGenerating ? null : _generateReport,
+            );
+          },
         ),
         const SizedBox(height: AppSpacing.lg),
         if (reports.isEmpty)

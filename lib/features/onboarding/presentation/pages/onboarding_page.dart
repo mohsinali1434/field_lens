@@ -25,29 +25,33 @@ class OnboardingPage extends StatefulWidget {
 
 class _OnboardingPageState extends State<OnboardingPage> {
   final _pageController = PageController();
-  int _currentPage = 0;
+  final ValueNotifier<int> _currentPage = ValueNotifier<int>(0);
 
   static const List<_OnboardingStep> _steps = <_OnboardingStep>[
     _OnboardingStep(
       icon: Icons.assignment_outlined,
       title: 'Capture inspections',
-      message: 'Create inspections, document sites, and keep everything organized offline.',
+      message:
+          'Create inspections, document sites, and keep everything organized offline.',
     ),
     _OnboardingStep(
       icon: Icons.photo_camera_outlined,
       title: 'Record observations',
-      message: 'Add photos, voice notes, and structured observations as you walk the site.',
+      message:
+          'Add photos, voice notes, and structured observations as you walk the site.',
     ),
     _OnboardingStep(
       icon: Icons.description_outlined,
       title: 'Generate reports',
-      message: 'Turn field data into professional PDF reports ready to share with clients.',
+      message:
+          'Turn field data into professional PDF reports ready to share with clients.',
     ),
   ];
 
   @override
   void dispose() {
     _pageController.dispose();
+    _currentPage.dispose();
     super.dispose();
   }
 
@@ -64,7 +68,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
   }
 
   void _next() {
-    if (_currentPage < _steps.length - 1) {
+    if (_currentPage.value < _steps.length - 1) {
       _pageController.nextPage(
         duration: AppConstants.animationDuration,
         curve: Curves.easeInOut,
@@ -76,8 +80,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isLast = _currentPage == _steps.length - 1;
-
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -93,9 +95,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
               child: PageView.builder(
                 controller: _pageController,
                 itemCount: _steps.length,
-                onPageChanged: (int index) {
-                  setState(() => _currentPage = index);
-                },
+                onPageChanged: (int index) => _currentPage.value = index,
                 itemBuilder: (BuildContext context, int index) {
                   final step = _steps[index];
                   return Padding(
@@ -112,14 +112,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
                             switchOutCurve: Curves.easeInCubic,
                             transitionBuilder:
                                 (Widget child, Animation<double> animation) {
-                                  return ScaleTransition(
-                                    scale: animation,
-                                    child: FadeTransition(
-                                      opacity: animation,
-                                      child: child,
-                                    ),
-                                  );
-                                },
+                              return ScaleTransition(
+                                scale: animation,
+                                child: FadeTransition(
+                                  opacity: animation,
+                                  child: child,
+                                ),
+                              );
+                            },
                             child: DecoratedBox(
                               key: ValueKey<IconData>(step.icon),
                               decoration: BoxDecoration(
@@ -163,38 +163,46 @@ class _OnboardingPageState extends State<OnboardingPage> {
             ),
             Padding(
               padding: const EdgeInsets.all(AppSpacing.lg),
-              child: Column(
-                children: <Widget>[
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List<Widget>.generate(_steps.length, (int index) {
-                      final isActive = index == _currentPage;
-                      return AnimatedContainer(
-                        duration: AppConstants.animationDuration,
-                        margin: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.xxs,
-                        ),
-                        width: isActive ? 28 : 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          gradient: isActive
-                              ? context.appTheme.heroGradient
-                              : null,
-                          color: isActive
-                              ? null
-                              : context.colors.outlineVariant,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      );
-                    }),
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  AppButton(
-                    label: isLast ? 'Get Started' : 'Next',
-                    expand: true,
-                    onPressed: _next,
-                  ),
-                ],
+              child: ValueListenableBuilder<int>(
+                valueListenable: _currentPage,
+                builder: (BuildContext context, int currentPage, _) {
+                  final isLast = currentPage == _steps.length - 1;
+                  return Column(
+                    children: <Widget>[
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List<Widget>.generate(_steps.length, (
+                          int index,
+                        ) {
+                          final isActive = index == currentPage;
+                          return AnimatedContainer(
+                            duration: AppConstants.animationDuration,
+                            margin: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.xxs,
+                            ),
+                            width: isActive ? 28 : 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              gradient: isActive
+                                  ? context.appTheme.heroGradient
+                                  : null,
+                              color: isActive
+                                  ? null
+                                  : context.colors.outlineVariant,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          );
+                        }),
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      AppButton(
+                        label: isLast ? 'Get Started' : 'Next',
+                        expand: true,
+                        onPressed: _next,
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
           ],

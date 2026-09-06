@@ -24,11 +24,12 @@ class _SignaturePageState extends State<SignaturePage> {
     penColor: Colors.black,
     exportBackgroundColor: Colors.white,
   );
-  bool _isSaving = false;
+  final ValueNotifier<bool> _isSaving = ValueNotifier<bool>(false);
 
   @override
   void dispose() {
     _controller.dispose();
+    _isSaving.dispose();
     super.dispose();
   }
 
@@ -40,7 +41,7 @@ class _SignaturePageState extends State<SignaturePage> {
       return;
     }
 
-    setState(() => _isSaving = true);
+    _isSaving.value = true;
     try {
       final Uint8List? bytes = await _controller.toPngBytes();
       if (bytes == null) {
@@ -55,7 +56,7 @@ class _SignaturePageState extends State<SignaturePage> {
       Navigator.of(context).pop(file.path);
     } on Object catch (error) {
       if (!mounted) return;
-      setState(() => _isSaving = false);
+      _isSaving.value = false;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to save signature: $error')),
       );
@@ -67,57 +68,62 @@ class _SignaturePageState extends State<SignaturePage> {
     return AppScaffold(
       title: 'Sign Report',
       showBackButton: true,
-      body: Column(
-        children: <Widget>[
-          Text(
-            'Draw your signature below',
-            style: context.textTheme.bodyMedium?.copyWith(
-              color: context.colors.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Expanded(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                border: Border.all(color: context.colors.outline),
-                borderRadius: BorderRadius.circular(12),
-                color: Colors.white,
-              ),
-              child: Signature(
-                controller: _controller,
-                backgroundColor: Colors.white,
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton(
-              onPressed: _isSaving ? null : _controller.clear,
-              child: const Text('Clear signature'),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Row(
+      body: ValueListenableBuilder<bool>(
+        valueListenable: _isSaving,
+        builder: (BuildContext context, bool isSaving, _) {
+          return Column(
             children: <Widget>[
-              Expanded(
-                child: AppButton(
-                  label: 'Skip',
-                  variant: AppButtonVariant.outlined,
-                  onPressed: _isSaving ? null : () => context.pop(),
+              Text(
+                'Draw your signature below',
+                style: context.textTheme.bodyMedium?.copyWith(
+                  color: context.colors.onSurfaceVariant,
                 ),
               ),
-              const SizedBox(width: AppSpacing.sm),
+              const SizedBox(height: AppSpacing.md),
               Expanded(
-                child: AppButton(
-                  label: 'Save',
-                  isLoading: _isSaving,
-                  onPressed: _isSaving ? null : _save,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: context.colors.outline),
+                    borderRadius: BorderRadius.circular(12),
+                    color: Colors.white,
+                  ),
+                  child: Signature(
+                    controller: _controller,
+                    backgroundColor: Colors.white,
+                  ),
                 ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: isSaving ? null : _controller.clear,
+                  child: const Text('Clear signature'),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Row(
+                children: <Widget>[
+                  Expanded(
+                    child: AppButton(
+                      label: 'Skip',
+                      variant: AppButtonVariant.outlined,
+                      onPressed: isSaving ? null : () => context.pop(),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: AppButton(
+                      label: 'Save',
+                      isLoading: isSaving,
+                      onPressed: isSaving ? null : _save,
+                    ),
+                  ),
+                ],
               ),
             ],
-          ),
-        ],
+          );
+        },
       ),
     );
   }

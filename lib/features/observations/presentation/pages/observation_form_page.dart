@@ -34,17 +34,47 @@ class ObservationFormPage extends StatefulWidget {
   State<ObservationFormPage> createState() => _ObservationFormPageState();
 }
 
+class _ObservationFormUiState {
+  const _ObservationFormUiState({
+    this.category = ObservationCategory.other,
+    this.severity = ObservationSeverity.low,
+    this.status = ObservationStatus.open,
+    this.isSaving = false,
+    this.isAnalyzing = false,
+    this.isLoading = false,
+  });
+
+  final ObservationCategory category;
+  final ObservationSeverity severity;
+  final ObservationStatus status;
+  final bool isSaving;
+  final bool isAnalyzing;
+  final bool isLoading;
+
+  _ObservationFormUiState copyWith({
+    ObservationCategory? category,
+    ObservationSeverity? severity,
+    ObservationStatus? status,
+    bool? isSaving,
+    bool? isAnalyzing,
+    bool? isLoading,
+  }) {
+    return _ObservationFormUiState(
+      category: category ?? this.category,
+      severity: severity ?? this.severity,
+      status: status ?? this.status,
+      isSaving: isSaving ?? this.isSaving,
+      isAnalyzing: isAnalyzing ?? this.isAnalyzing,
+      isLoading: isLoading ?? this.isLoading,
+    );
+  }
+}
+
 class _ObservationFormPageState extends State<ObservationFormPage> {
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
-
-  ObservationCategory _category = ObservationCategory.other;
-  ObservationSeverity _severity = ObservationSeverity.low;
-  ObservationStatus _status = ObservationStatus.open;
-
-  bool _isSaving = false;
-  bool _isAnalyzing = false;
-  bool _isLoading = false;
+  final ValueNotifier<_ObservationFormUiState> _state =
+      ValueNotifier<_ObservationFormUiState>(const _ObservationFormUiState());
   DateTime? _createdAt;
 
   @override
@@ -56,7 +86,7 @@ class _ObservationFormPageState extends State<ObservationFormPage> {
   }
 
   Future<void> _loadObservation() async {
-    setState(() => _isLoading = true);
+    _state.value = _state.value.copyWith(isLoading: true);
     final result = await sl<ObservationRepository>().getById(
       widget.observationId!,
     );
@@ -66,17 +96,18 @@ class _ObservationFormPageState extends State<ObservationFormPage> {
       onSuccess: (ObservationEntity observation) {
         _titleController.text = observation.title;
         _descriptionController.text = observation.description;
-        _category = observation.category;
-        _severity = observation.severity;
-        _status = observation.status;
         _createdAt = observation.createdAt;
-        setState(() => _isLoading = false);
+        _state.value = _state.value.copyWith(
+          category: observation.category,
+          severity: observation.severity,
+          status: observation.status,
+          isLoading: false,
+        );
       },
       onFailure: (failure) {
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(failure.message)),
-        );
+        _state.value = _state.value.copyWith(isLoading: false);
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(failure.message)));
         context.pop();
       },
     );
@@ -86,11 +117,13 @@ class _ObservationFormPageState extends State<ObservationFormPage> {
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
+    _state.dispose();
     super.dispose();
   }
 
   Future<void> _applySuggestions() async {
-    final text = '${_titleController.text} ${_descriptionController.text}'.trim();
+    final text = '${_titleController.text} ${_descriptionController.text}'
+        .trim();
     if (text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Enter a title or description first.')),
@@ -98,25 +131,24 @@ class _ObservationFormPageState extends State<ObservationFormPage> {
       return;
     }
 
-    setState(() => _isAnalyzing = true);
+    _state.value = _state.value.copyWith(isAnalyzing: true);
     final suggestion = await sl<IntelligenceService>().analyzeObservation(
       text: text,
     );
     if (!mounted) return;
 
-    setState(() {
-      _isAnalyzing = false;
-      if (_titleController.text.trim().isEmpty) {
-        _titleController.text = suggestion.title;
-      }
-      _category = suggestion.category;
-      _severity = suggestion.severity;
-      _status = suggestion.status;
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Suggestions applied.')),
+    if (_titleController.text.trim().isEmpty) {
+      _titleController.text = suggestion.title;
+    }
+    _state.value = _state.value.copyWith(
+      isAnalyzing: false,
+      category: suggestion.category,
+      severity: suggestion.severity,
+      status: suggestion.status,
     );
+
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Suggestions applied.')));
   }
 
   Future<void> _save() async {
@@ -124,13 +156,13 @@ class _ObservationFormPageState extends State<ObservationFormPage> {
     final description = _descriptionController.text.trim();
 
     if (title.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Title is required.')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Title is required.')));
       return;
     }
 
-    setState(() => _isSaving = true);
+    final ui = _state.value;
+    _state.value = ui.copyWith(isSaving: true);
     final now = DateTime.now().toUtc();
     final isNew = !widget.isEditing;
     final observation = ObservationEntity(
@@ -138,9 +170,9 @@ class _ObservationFormPageState extends State<ObservationFormPage> {
       inspectionId: widget.inspectionId,
       title: title,
       description: description,
-      category: _category,
-      severity: _severity,
-      status: _status,
+      category: ui.category,
+      severity: ui.severity,
+      status: ui.status,
       createdAt: _createdAt ?? now,
       updatedAt: now,
     );
@@ -167,138 +199,151 @@ class _ObservationFormPageState extends State<ObservationFormPage> {
         if (mounted) context.pop(true);
       },
       onFailure: (failure) async {
-        setState(() => _isSaving = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(failure.message)),
-        );
+        _state.value = _state.value.copyWith(isSaving: false);
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(failure.message)));
       },
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const AppScaffold(
-        title: 'Observation',
-        showBackButton: true,
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
+    return ValueListenableBuilder<_ObservationFormUiState>(
+      valueListenable: _state,
+      builder: (BuildContext context, _ObservationFormUiState state, _) {
+        if (state.isLoading) {
+          return const AppScaffold(
+            title: 'Observation',
+            showBackButton: true,
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
 
-    return AppScaffold(
-      title: widget.isEditing ? 'Edit Observation' : 'New Observation',
-      showBackButton: true,
-      body: ListView(
-        children: <Widget>[
-          Text('Observation Details', style: context.textTheme.titleLarge),
-          const SizedBox(height: AppSpacing.lg),
-          AppTextField(
-            controller: _titleController,
-            label: 'Title',
-            hint: 'Brief summary of the issue',
-            enabled: !_isSaving,
-          ),
-          const SizedBox(height: AppSpacing.md),
-          AppTextField(
-            controller: _descriptionController,
-            label: 'Description',
-            hint: 'Describe what you observed',
-            maxLines: 4,
-            enabled: !_isSaving,
-          ),
-          const SizedBox(height: AppSpacing.md),
-          _LabeledField(
-            label: 'Category',
-            child: DropdownButtonFormField<ObservationCategory>(
-              initialValue: _category,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
+        return AppScaffold(
+          title: widget.isEditing ? 'Edit Observation' : 'New Observation',
+          showBackButton: true,
+          body: ListView(
+            children: <Widget>[
+              Text('Observation Details', style: context.textTheme.titleLarge),
+              const SizedBox(height: AppSpacing.lg),
+              AppTextField(
+                controller: _titleController,
+                label: 'Title',
+                hint: 'Brief summary of the issue',
+                enabled: !state.isSaving,
               ),
-              items: ObservationCategory.values
-                  .map(
-                    (ObservationCategory category) => DropdownMenuItem(
-                      value: category,
-                      child: Text(_labelCategory(category)),
-                    ),
-                  )
-                  .toList(),
-              onChanged: _isSaving
-                  ? null
-                  : (ObservationCategory? value) {
-                      if (value != null) {
-                        setState(() => _category = value);
-                      }
-                    },
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          _LabeledField(
-            label: 'Severity',
-            child: DropdownButtonFormField<ObservationSeverity>(
-              initialValue: _severity,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
+              const SizedBox(height: AppSpacing.md),
+              AppTextField(
+                controller: _descriptionController,
+                label: 'Description',
+                hint: 'Describe what you observed',
+                maxLines: 4,
+                enabled: !state.isSaving,
               ),
-              items: ObservationSeverity.values
-                  .map(
-                    (ObservationSeverity severity) => DropdownMenuItem(
-                      value: severity,
-                      child: Text(_labelSeverity(severity)),
-                    ),
-                  )
-                  .toList(),
-              onChanged: _isSaving
-                  ? null
-                  : (ObservationSeverity? value) {
-                      if (value != null) {
-                        setState(() => _severity = value);
-                      }
-                    },
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          _LabeledField(
-            label: 'Status',
-            child: DropdownButtonFormField<ObservationStatus>(
-              initialValue: _status,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
+              const SizedBox(height: AppSpacing.md),
+              _LabeledField(
+                label: 'Category',
+                child: DropdownButtonFormField<ObservationCategory>(
+                  key: ValueKey<ObservationCategory>(state.category),
+                  initialValue: state.category,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                  ),
+                  items: ObservationCategory.values
+                      .map(
+                        (ObservationCategory category) => DropdownMenuItem(
+                          value: category,
+                          child: Text(_labelCategory(category)),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: state.isSaving
+                      ? null
+                      : (ObservationCategory? value) {
+                          if (value != null) {
+                            _state.value = _state.value.copyWith(
+                              category: value,
+                            );
+                          }
+                        },
+                ),
               ),
-              items: ObservationStatus.values
-                  .map(
-                    (ObservationStatus status) => DropdownMenuItem(
-                      value: status,
-                      child: Text(_labelStatus(status)),
-                    ),
-                  )
-                  .toList(),
-              onChanged: _isSaving
-                  ? null
-                  : (ObservationStatus? value) {
-                      if (value != null) {
-                        setState(() => _status = value);
-                      }
-                    },
-            ),
+              const SizedBox(height: AppSpacing.md),
+              _LabeledField(
+                label: 'Severity',
+                child: DropdownButtonFormField<ObservationSeverity>(
+                  key: ValueKey<ObservationSeverity>(state.severity),
+                  initialValue: state.severity,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                  ),
+                  items: ObservationSeverity.values
+                      .map(
+                        (ObservationSeverity severity) => DropdownMenuItem(
+                          value: severity,
+                          child: Text(_labelSeverity(severity)),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: state.isSaving
+                      ? null
+                      : (ObservationSeverity? value) {
+                          if (value != null) {
+                            _state.value = _state.value.copyWith(
+                              severity: value,
+                            );
+                          }
+                        },
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              _LabeledField(
+                label: 'Status',
+                child: DropdownButtonFormField<ObservationStatus>(
+                  key: ValueKey<ObservationStatus>(state.status),
+                  initialValue: state.status,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                  ),
+                  items: ObservationStatus.values
+                      .map(
+                        (ObservationStatus status) => DropdownMenuItem(
+                          value: status,
+                          child: Text(_labelStatus(status)),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: state.isSaving
+                      ? null
+                      : (ObservationStatus? value) {
+                          if (value != null) {
+                            _state.value = _state.value.copyWith(status: value);
+                          }
+                        },
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              AppButton(
+                label: 'Get Suggestions',
+                variant: AppButtonVariant.secondary,
+                icon: Icons.auto_awesome_rounded,
+                expand: true,
+                isLoading: state.isAnalyzing,
+                onPressed: state.isSaving || state.isAnalyzing
+                    ? null
+                    : _applySuggestions,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              AppButton(
+                label: widget.isEditing ? 'Save Changes' : 'Save Observation',
+                expand: true,
+                isLoading: state.isSaving,
+                onPressed: state.isSaving ? null : _save,
+              ),
+            ],
           ),
-          const SizedBox(height: AppSpacing.lg),
-          AppButton(
-            label: 'Get Suggestions',
-            variant: AppButtonVariant.secondary,
-            icon: Icons.auto_awesome_rounded,
-            expand: true,
-            isLoading: _isAnalyzing,
-            onPressed: _isSaving || _isAnalyzing ? null : _applySuggestions,
-          ),
-          const SizedBox(height: AppSpacing.md),
-          AppButton(
-            label: widget.isEditing ? 'Save Changes' : 'Save Observation',
-            expand: true,
-            isLoading: _isSaving,
-            onPressed: _isSaving ? null : _save,
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 

@@ -20,8 +20,8 @@ class NoteFormPage extends StatefulWidget {
 
 class _NoteFormPageState extends State<NoteFormPage> {
   final _controller = TextEditingController();
-  bool _isLoading = true;
-  bool _isSaving = false;
+  final ValueNotifier<bool> _isLoading = ValueNotifier<bool>(true);
+  final ValueNotifier<bool> _isSaving = ValueNotifier<bool>(false);
   InspectionEntity? _inspection;
 
   @override
@@ -33,6 +33,8 @@ class _NoteFormPageState extends State<NoteFormPage> {
   @override
   void dispose() {
     _controller.dispose();
+    _isLoading.dispose();
+    _isSaving.dispose();
     super.dispose();
   }
 
@@ -44,14 +46,12 @@ class _NoteFormPageState extends State<NoteFormPage> {
 
     result.fold(
       onSuccess: (inspection) {
-        setState(() {
-          _inspection = inspection;
-          _controller.text = inspection.notes ?? '';
-          _isLoading = false;
-        });
+        _inspection = inspection;
+        _controller.text = inspection.notes ?? '';
+        _isLoading.value = false;
       },
       onFailure: (failure) {
-        setState(() => _isLoading = false);
+        _isLoading.value = false;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(failure.message)),
         );
@@ -63,7 +63,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
     final inspection = _inspection;
     if (inspection == null) return;
 
-    setState(() => _isSaving = true);
+    _isSaving.value = true;
     final result = await sl<InspectionActivityService>().saveNote(
       inspection: inspection,
       note: _controller.text.trim(),
@@ -73,7 +73,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
     result.fold(
       onSuccess: (_) => Navigator.of(context).pop(true),
       onFailure: (failure) {
-        setState(() => _isSaving = false);
+        _isSaving.value = false;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(failure.message)),
         );
@@ -86,26 +86,37 @@ class _NoteFormPageState extends State<NoteFormPage> {
     return AppScaffold(
       title: 'Inspection Notes',
       showBackButton: true,
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              children: <Widget>[
-                AppTextField(
-                  controller: _controller,
-                  label: 'Notes',
-                  hint: 'Add site notes, follow-ups, or reminders',
-                  maxLines: 8,
-                  enabled: !_isSaving,
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                AppButton(
-                  label: 'Save Notes',
-                  expand: true,
-                  isLoading: _isSaving,
-                  onPressed: _isSaving ? null : _save,
-                ),
-              ],
-            ),
+      body: ValueListenableBuilder<bool>(
+        valueListenable: _isLoading,
+        builder: (BuildContext context, bool isLoading, _) {
+          if (isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          return ValueListenableBuilder<bool>(
+            valueListenable: _isSaving,
+            builder: (BuildContext context, bool isSaving, _) {
+              return ListView(
+                children: <Widget>[
+                  AppTextField(
+                    controller: _controller,
+                    label: 'Notes',
+                    hint: 'Add site notes, follow-ups, or reminders',
+                    maxLines: 8,
+                    enabled: !isSaving,
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  AppButton(
+                    label: 'Save Notes',
+                    expand: true,
+                    isLoading: isSaving,
+                    onPressed: isSaving ? null : _save,
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      ),
     );
   }
 }
